@@ -195,8 +195,8 @@ pub mod kat {
 
     pub struct VertexArray {
         handle: u32,
-        nextAttrib: usize,
-        nextBinding: usize
+        next_attrib: usize,
+        next_binding: usize
     }
 
     impl VertexArray {
@@ -205,8 +205,8 @@ pub mod kat {
             unsafe { gl::CreateVertexArrays(1, &mut i); }
             return VertexArray {
                 handle: i,
-                nextAttrib: 0,
-                nextBinding: 0
+                next_attrib: 0,
+                next_binding: 0
             }
         }
 
@@ -216,16 +216,17 @@ pub mod kat {
 
             for a in attribs {
                 unsafe {
-                    gl::VertexArrayAttribFormat(self.handle, self.nextAttrib as GLuint, a as GLint, gl::FLOAT, gl::FALSE, stride as GLuint);
-                    gl::VertexArrayAttribBinding(self.handle, self.nextAttrib as GLuint, self.nextBinding as GLuint);
+                    gl::VertexArrayAttribFormat(self.handle, self.next_attrib as GLuint, a as GLint, gl::FLOAT, gl::FALSE, stride as GLuint);
+                    gl::VertexArrayAttribBinding(self.handle, self.next_attrib as GLuint, self.next_binding as GLuint);
+                    gl::EnableVertexArrayAttrib(self.handle, self.next_attrib as GLuint);
                 }
 
                 stride += a * std::mem::size_of::<f32>();
-                self.nextAttrib += 1;
+                self.next_attrib += 1;
             }
 
-            unsafe { gl::VertexArrayVertexBuffer(self.handle, self.nextBinding as GLuint, buf.handle, 0, stride as GLsizei); }
-            self.nextBinding += 1;
+            unsafe { gl::VertexArrayVertexBuffer(self.handle, self.next_binding as GLuint, buf.handle, 0, stride as GLsizei); }
+            self.next_binding += 1;
         }
 
         pub fn element_buffer(&mut self, buf: &mut Buffer<u32>) {
