@@ -7,7 +7,7 @@ pub mod kat {
     use std::borrow::BorrowMut;
     use std::ffi::c_void;
     use std::marker::PhantomData;
-    use std::ptr::null;
+    use std::ptr::{null, null_mut};
     use glfw;
     use glfw::{Context, Glfw, WindowMode};
     use num_traits::Num;
@@ -152,7 +152,7 @@ pub mod kat {
 
     pub struct Buffer<T: Num> {
         handle: u32,
-        size: usize,
+        pub size: usize,
         target: BufferTarget,
         _phantom: PhantomData<T>
     }
@@ -242,6 +242,13 @@ pub mod kat {
                 gl::DrawArrays(translate_draw_mode(mode), start as GLint, count as GLint);
             }
         }
+
+        pub fn draw_elements(&mut self, mode: DrawMode, count: usize, start: i32) {
+            self.bind();
+            unsafe {
+                gl::DrawElements(translate_draw_mode(mode), count as GLsizei, gl::UNSIGNED_INT, (start * 4) as *const i32 as *const c_void);
+            }
+        }
     }
 
     impl <T: Num> Bindable for Buffer<T> {
@@ -255,4 +262,148 @@ pub mod kat {
             unsafe { gl::BindVertexArray(self.handle); }
         }
     }
+
+    pub struct Shader {
+        handle: u32
+    }
+
+    #[derive(Clone,Copy,PartialEq,Eq,Hash)]
+    pub enum ShaderType {
+        Vertex,
+        Fragment,
+        Compute,
+        Geometry,
+        TessEval,
+        TessControl
+    }
+
+    pub const fn translate_shader_type(t: ShaderType) -> u32 {
+        match t {
+            ShaderType::Vertex => { gl::VERTEX_SHADER }
+            ShaderType::Fragment => { gl::FRAGMENT_SHADER }
+            ShaderType::Compute => { gl::COMPUTE_SHADER }
+            ShaderType::Geometry => { gl::GEOMETRY_SHADER }
+            ShaderType::TessEval => { gl::TESS_EVALUATION_SHADER }
+            ShaderType::TessControl => { gl::TESS_CONTROL_SHADER }
+        }
+    }
+
+
+    pub struct ShaderFile {
+        path: String,
+        t: ShaderType
+    }
+
+    impl ShaderFile {
+        pub fn of(path: &str, t: ShaderType) -> ShaderFile {
+            ShaderFile{
+                path: path.to_string(), t
+            }
+        }
+    }
+
+    impl Shader {
+        pub fn load(paths: Vec<ShaderFile>) -> Shader {
+            let sh = Shader { handle: unsafe { gl::CreateProgram() } };
+            unsafe {
+                let mut shs: Vec<u32> = Vec::new();
+
+                for p in paths {
+                    let i: u32 = gl::CreateShader(translate_shader_type(p.t));
+                    let mut content = std::fs::read(p.path).unwrap();
+                    content.push(0);
+                    let ptr = content.as_ptr() as *const GLchar;
+                    gl::ShaderSource(i, 1, &ptr, null());
+                    gl::CompileShader(i);
+
+                    let mut status: i32 = 0;
+                    gl::GetShaderiv(i, gl::COMPILE_STATUS, &mut status);
+
+                    if status != gl::TRUE as i32 {
+                        gl::GetShaderiv(i, gl::INFO_LOG_LENGTH, &mut status);
+                        let mut buf = Vec::<u8>::with_capacity(status as usize);
+                        buf.set_len(status as usize);
+                        gl::GetShaderInfoLog(i, status, null_mut(), buf.as_mut_ptr() as *mut GLchar);
+                        let il = String::from_utf8(buf.clone()).expect("Failed to read info log");
+                        panic!("{}", il);
+                    }
+
+                    gl::AttachShader(sh.handle, i);
+                    shs.push(i);
+                }
+
+                gl::LinkProgram(sh.handle);
+
+                let mut status: i32 = 0;
+                gl::GetProgramiv(sh.handle, gl::LINK_STATUS, &mut status);
+
+                if status != gl::TRUE as i32 {
+                    gl::GetProgramiv(sh.handle, gl::INFO_LOG_LENGTH, &mut status);
+                    let mut buf = Vec::<u8>::with_capacity(status as usize);
+                    buf.set_len(status as usize);
+                    gl::GetProgramInfoLog(sh.handle, status, null_mut(), buf.as_mut_ptr() as *mut GLchar);
+                    let il = String::from_utf8(buf.clone()).expect("Failed to read info log");
+                    panic!("{}", il);
+                }
+
+                for ii in shs {
+                    gl::DeleteShader(ii);
+                }
+            }
+
+            return sh
+        }
+
+        pub fn uniform_1f(&self, name: &str, value: f32) {
+            unsafe { gl::ProgramUniform1f(
+                self.handle,
+                gl::GetUniformLocation(
+                    self.handle, name.as_ptr() as *const GLchar),
+                value); }
+        }
+
+        pub fn uniform_2f(&self, name: &str, x: f32, y: f32) {
+            unsafe { gl::ProgramUniform2f(
+                self.handle,
+                gl::GetUniformLocation(
+                    self.handle, name.as_ptr() as *const GLchar),
+                x, y); }
+        }
+
+        pub fn uniform_3f(&self, name: &str, x: f32, y: f32, z: f32) {
+            unsafe { gl::ProgramUniform3f(
+                self.handle,
+                gl::GetUniformLocation(
+                    self.handle, name.as_ptr() as *const GLchar),
+                x, y, z); }
+        }
+
+        pub fn uniform_4f(&self, name: &str, x: f32, y: f32, z: f32, w: f32) {
+            unsafe { gl::ProgramUniform4f(
+                self.handle,
+                gl::GetUniformLocation(
+                    self.handle, name.as_ptr() as *const GLchar),
+                x, y, z, w); }
+        }
+    }
+
+    impl Bindable for Shader {
+        fn bind(&mut self) {
+            unsafe { gl::UseProgram(self.handle) }
+        }
+    }
+
+    impl Drop for Shader {
+        fn drop(&mut self) {
+            unsafe { gl::DeleteProgram(self.handle); }
+        }
+    }
+
+    impl <T: Num> Drop for Buffer<T> {
+        fn drop(&mut self) {
+            unsafe { gl::DeleteBuffers(1, &self.handle); }
+        }
+    }
+
+
 }
