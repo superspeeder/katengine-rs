@@ -2,6 +2,7 @@ extern crate glfw;
 
 use std::borrow::BorrowMut;
 use glfw::{Action, Key};
+use glm::vec4;
 use katengine::kat;
 use katengine::kat::{Bindable, Buffer, BufferTarget, DrawMode, Shader,
                      ShaderFile, ShaderType, VertexArray};
@@ -46,6 +47,8 @@ fn main() {
         engine.clear(&col);
 
         shader.bind();
+
+        shader.uniform_color("uColor", &kat::colors::GREEN);
 
         vertex_array.draw_elements(DrawMode::Triangles, element_buffer.size, 0);
 

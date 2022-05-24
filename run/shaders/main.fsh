@@ -3,6 +3,8 @@
 out vec4 colorOut;
 in vec2 fUVs;
 
+uniform vec4 uColor;
+
 void main() {
-    colorOut = vec4(1.0, fUVs, 1.0);
+    colorOut = uColor;
 }

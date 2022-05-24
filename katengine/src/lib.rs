@@ -1,5 +1,6 @@
 extern crate glfw;
 extern crate num_traits;
+extern crate glm;
 
 pub mod gl;
 
@@ -355,35 +356,63 @@ pub mod kat {
         }
 
         pub fn uniform_1f(&self, name: &str, value: f32) {
+            let mut namez = String::from(name);
+            namez.push('\0');
+
             unsafe { gl::ProgramUniform1f(
                 self.handle,
                 gl::GetUniformLocation(
-                    self.handle, name.as_ptr() as *const GLchar),
+                    self.handle, namez.as_ptr() as *const GLchar),
                 value); }
         }
 
         pub fn uniform_2f(&self, name: &str, x: f32, y: f32) {
+            let mut namez = String::from(name);
+            namez.push('\0');
+
             unsafe { gl::ProgramUniform2f(
                 self.handle,
                 gl::GetUniformLocation(
-                    self.handle, name.as_ptr() as *const GLchar),
+                    self.handle, namez.as_ptr() as *const GLchar),
                 x, y); }
         }
 
         pub fn uniform_3f(&self, name: &str, x: f32, y: f32, z: f32) {
+            let mut namez = String::from(name);
+            namez.push('\0');
+
             unsafe { gl::ProgramUniform3f(
                 self.handle,
                 gl::GetUniformLocation(
-                    self.handle, name.as_ptr() as *const GLchar),
+                    self.handle, namez.as_ptr() as *const GLchar),
                 x, y, z); }
         }
 
         pub fn uniform_4f(&self, name: &str, x: f32, y: f32, z: f32, w: f32) {
+            let mut namez = String::from(name);
+            namez.push('\0');
+
             unsafe { gl::ProgramUniform4f(
                 self.handle,
                 gl::GetUniformLocation(
-                    self.handle, name.as_ptr() as *const GLchar),
+                    self.handle, namez.as_ptr() as *const GLchar),
                 x, y, z, w); }
+        }
+
+        pub fn uniform_2fv(&self, name: &str, value: glm::Vec2) {
+            self.uniform_2f(name, value.x, value.y);
+        }
+
+        pub fn uniform_3fv(&self, name: &str, value: glm::Vec3) {
+            self.uniform_3f(name, value.x, value.y, value.z)
+        }
+
+        pub fn uniform_4fv(&self, name: &str, value: glm::Vec4) {
+            self.uniform_4f(name, value.x, value.y, value.z, value.w);
+        }
+
+        pub fn uniform_color(&self, name: &str, color: &Color) {
+            self.uniform_4f(name, color.r, color.g, color.b, color.a);
         }
     }
 
@@ -405,5 +434,8 @@ pub mod kat {
         }
     }
 
+    struct Texture {
+        handle: u32
+    }
 
 }

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 katengine = { path = "../katengine"}
 glfw = "0.44.0"
+glm = "0.2.3"

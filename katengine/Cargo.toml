@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 glfw = "0.44.0"
 num-traits = "0.2.15"
+glm = "0.2.3"
